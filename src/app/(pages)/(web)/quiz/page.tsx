@@ -5,22 +5,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useKanjis } from "@/providers/Kanjis";
 import { KanjisResponse } from "@/types/kanji";
-import { Check } from "lucide-react";
+import { ArrowLeft, Check, Languages, NotebookPen } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 export default function QuizPage() {
-    const { selectedKanjis } = useKanjis();
+    const router = useRouter();
+    const { selectedKanjis, setSelectedKanjis } = useKanjis();
     const [kanjis, setKanjis] = useState<KanjisResponse['dados']>([]);
     const [kanjisErrados, setKanjisErrados] = useState<KanjisResponse['dados']>([]);
     const [kanjiAtual, setKanjiAtual] = useState(0)
+    const [loading, setLoading] = useState<boolean>(true)
+    const [mode, setMode] = useState<string>("traducao")
 
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollAreaRef = useRef(null);
 
     useEffect(() => {
         async function fetchKanjisSelecionados() {
+            setLoading(true)
             const res = await fetch('/api/kanjis', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -30,6 +37,7 @@ export default function QuizPage() {
             const data: KanjisResponse = await res.json();
 
             setKanjis(data.dados);
+            setLoading(false)
         }
 
         fetchKanjisSelecionados();
@@ -70,11 +78,17 @@ export default function QuizPage() {
 
     const valida = () => {
         if (inputRef.current != null) {
+            const kanji = kanjis[kanjiAtual]
             const valor = inputRef.current.value;
 
-            const kanji = kanjis[kanjiAtual]
-            if (kanji.traducao.toLowerCase() != valor.toLowerCase()) {
-                setKanjisErrados(prev => [...prev, kanji])
+            if (mode == "leitura") {
+                if (kanji.leitura != valor) {
+                    setKanjisErrados(prev => [...prev, kanji])
+                }
+            } else {
+                if (kanji.traducao.toLowerCase() != valor.toLowerCase()) {
+                    setKanjisErrados(prev => [...prev, kanji])
+                }
             }
 
             setKanjiAtual(prev => prev + 1)
@@ -82,32 +96,69 @@ export default function QuizPage() {
         }
     }
 
+    const voltar = () =>{
+        setSelectedKanjis(new Set())
+        router.push(`/`);
+    }
+
     return (
         <>
-            <ScrollArea className="h-[150px] w-full p-4 rounded-md border" ref={scrollAreaRef}>
-                <div className="flex flex-row gap-5">
-                    {kanjis.map((kanji, index) => (
-                        <Card
-                            key={index}
-                            className={`kanji-card w-[100px] ${index !== kanjiAtual ? "opacity-15" : ""
-                                } ${kanjisErrados.includes(kanji)
-                                    ? "bg-red-500"
-                                    : kanjiAtual > index
-                                        ? "bg-green-500"
-                                        : ""
-                                }`}
-                        >
-                            <CardContent className="flex justify-center items-center">
-                                <Label className="text-4xl">{kanji.kanji}</Label>
-                            </CardContent>
-                        </Card>
-                    ))}
+            {
+                loading && <ScrollArea className="h-[150px] w-full p-4 rounded-md border" ref={scrollAreaRef}>
+                    <div className="flex flex-row gap-5">
+                        {Array.from({ length: 48 }).map((_, index) => (
+                            <Skeleton key={index} className="h-[100px] w-[100px] rounded-xl" />
+                        ))}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+            }
+            {
+                !loading && <ScrollArea className="h-[150px] w-full p-4 rounded-md border" ref={scrollAreaRef}>
+                    <div className="flex flex-row gap-5">
+                        {kanjis.map((kanji, index) => (
+                            <Card
+                                key={index}
+                                className={`kanji-card w-[100px] ${index !== kanjiAtual ? "opacity-15" : ""
+                                    } ${kanjisErrados.includes(kanji)
+                                        ? "bg-red-500"
+                                        : kanjiAtual > index
+                                            ? "bg-green-500"
+                                            : ""
+                                    }`}
+                            >
+                                <CardContent className="flex flex-col justify-center items-center">
+                                    <Label className="text-4xl">{kanji.kanji}</Label>
+                                    <Label>{mode == "traducao" ? kanji.leitura : kanji.traducao}</Label>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+            }
+            <div className="flex flex-col items-center justify-center w-full">
+                <div className="flex w-full  items-center justify-center space-x-2 mt-10">
+                    <Button className="h-12 cursor-pointer" variant="outline" onClick={voltar} disabled={loading}><ArrowLeft /></Button>
+                    <Input className="h-12 w-50" ref={inputRef} onKeyDown={handleKeyDown} />
+                    <Button className="h-12 cursor-pointer" variant="outline" onClick={valida} disabled={loading}><Check /></Button>
                 </div>
-                <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-            <div className="flex w-full  items-center justify-center space-x-2 mt-10">
-                <Input className="h-12 w-50" ref={inputRef} onKeyDown={handleKeyDown} />
-                <Button className="h-12 cursor-pointer" variant="outline" onClick={valida}><Check /></Button>
+                <div>
+                    <ToggleGroup
+                        type="single"
+                        value={mode}
+                        onValueChange={(value) => {
+                            if (kanjiAtual == 0 && value != null && value != "") setMode(value)
+                        }}
+                    >
+                        <ToggleGroupItem className="cursor-pointer" value="leitura">
+                            <NotebookPen className="h-4 w-4 cursor-pointer" />
+                        </ToggleGroupItem>
+                        <ToggleGroupItem className="cursor-pointer" value="traducao">
+                            <Languages className="h-4 w-4 cursor-pointer" />
+                        </ToggleGroupItem>
+                    </ToggleGroup>
+                </div>
             </div>
         </>
     )

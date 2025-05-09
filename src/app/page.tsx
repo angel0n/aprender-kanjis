@@ -10,18 +10,22 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { useKanjis } from '@/providers/Kanjis';
 import { useRouter } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function KanjisPage() {
   const [kanjis, setKanjis] = useState<KanjisResponse['dados']>([]);
+  const [loading, setLoading] = useState<boolean>(true)
   const { selectedKanjis, setSelectedKanjis } = useKanjis();
   const router = useRouter();
 
 
   useEffect(() => {
     async function fetchKanjis() {
+      setLoading(true)
       const res = await fetch('/api/kanjis');
       const data: KanjisResponse = await res.json();
       setKanjis(data.dados);
+      setLoading(false)
     }
 
     fetchKanjis();
@@ -39,22 +43,32 @@ export default function KanjisPage() {
 
   const handleSelectAll = () => {
     let allKanjis: string[] = [];
-    if(selectedKanjis.size != kanjis.length) allKanjis = kanjis.map(k => k._id);
+    if (selectedKanjis.size != kanjis.length) allKanjis = kanjis.map(k => k._id);
     setSelectedKanjis(new Set(allKanjis));
   };
 
   const handleGoToSelectedPage = () => {
-    if(selectedKanjis.size > 0) router.push(`/quiz`);
+    if (selectedKanjis.size > 0) router.push(`/quiz`);
   };
 
   return (
     <main className="p-4">
       <div className='flex flex-row gap-2 p-4 items-center justify-center'>
-        <Checkbox id="all"  className='cursor-pointer' checked={selectedKanjis.size == kanjis.length} onCheckedChange={() => handleSelectAll()} />
+        <Checkbox id="all" className='cursor-pointer' checked={selectedKanjis.size == kanjis.length} onCheckedChange={() => handleSelectAll()} />
         <Label htmlFor="all" className='text-xl'>Selecionar tudo</Label>
         <Button className={`cursor-pointer ${selectedKanjis.size < 1 ? "opacity-20" : ""}`} variant="secondary" onClick={handleGoToSelectedPage}>Iniciar</Button>
       </div>
-      <ScrollArea className="max-h-screen w-full rounded-md">
+      {
+        loading && <ScrollArea className="max-h-screen w-full rounded-md">
+          <div className='h-full w-full flex flex-row flex-wrap gap-5 '>
+            {Array.from({length: 48}).map((_, index) => (
+               <Skeleton key={index} className="h-[100px] w-[100px] rounded-xl" />
+            ))}
+          </div>
+          <ScrollBar orientation="vertical" />
+        </ScrollArea>
+      }
+      {!loading && <ScrollArea className="max-h-screen w-full rounded-md">
         <div className='h-full w-full flex flex-row flex-wrap gap-5 '>
           {kanjis.map((kanji) => (
             <Card key={kanji._id} className="w-[100px]">
@@ -70,7 +84,7 @@ export default function KanjisPage() {
           ))}
         </div>
         <ScrollBar orientation="vertical" />
-      </ScrollArea>
+      </ScrollArea>}
     </main>
   );
 }
