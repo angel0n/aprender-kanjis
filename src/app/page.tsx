@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useKanjis } from '@/providers/Kanjis';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus } from 'lucide-react';
+import { Download, Plus } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 
@@ -56,7 +56,7 @@ export default function KanjisPage() {
   };
 
   const salvar = async () => {
-    if(novoKanji.codigo != "日本") return
+    if (novoKanji.codigo != "日本") return
     await fetch('/api/kanjis/salvar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -74,6 +74,20 @@ export default function KanjisPage() {
       ...prev,
       [id]: value
     }));
+  };
+
+  const baixarJson = () => {
+
+    const blob = new Blob([JSON.stringify(kanjis, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "kanji.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -124,6 +138,7 @@ export default function KanjisPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+         <Button className='cursor-pointer' variant="secondary" onClick={baixarJson} disabled={loading}><Download /></Button>
       </div>
       {
         loading && <ScrollArea className="max-h-screen w-full rounded-md">
