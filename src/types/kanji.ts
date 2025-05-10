@@ -7,5 +7,11 @@ export type Kanji = {
 
 export type KanjisResponse = {
     dados: Kanji[];
-  };
-  
+};
+
+export type novoKanji = {
+    codigo: string,
+    kanji: string,
+    leitura: string,
+    traducao: string
+} 
