@@ -14,6 +14,10 @@ export default function KanjisPage() {
     router.push("/kanjis/quiz")
   }
 
+  function onClickBtnConjugacao() {
+    router.push("/conjugacao")
+  }
+
   return (
     <main className="p-4 w-screen h-screen flex flex-row items-center justify-center gap-4">
       <Card className="w-[300px] h-[250px]" >
@@ -53,7 +57,7 @@ export default function KanjisPage() {
           Identifique e conjulgue verbos
         </CardContent>
         <CardFooter className="h-full">
-          <Button className="w-full cursor-pointer" disabled>
+          <Button className="w-full cursor-pointer" onClick={onClickBtnConjugacao}>
             Acessar
           </Button>
         </CardFooter>
